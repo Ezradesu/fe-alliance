@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ProgressCard } from "@/components/dashboard/progress-card";
-import { CurrentSessionCard } from "@/components/dashboard/current-session-card";
 import { BadgesCard } from "@/components/dashboard/badges-card";
+import { SessionGridCard } from "@/components/dashboard/session-grid-card";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
-import { SessionHistoryList } from "@/components/dashboard/session-history-list";
 import { DashboardData, Badge } from "@/types/dashboard";
 import { getToken, removeToken, getUser } from "@/lib/auth";
 
@@ -177,27 +176,35 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto p-6 space-y-6">
-                <DashboardHeader student={data.student} />
+                <DashboardHeader
+                    student={data.student}
+                    completedSessions={data.progress.completedSessions}
+                    totalSessions={data.progress.totalSessions}
+                />
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-                    {/* Main Content Area - 4 cols */}
+                <div className="grid gap-6 lg:grid-cols-12">
+                    {/* Left Column - Progression + Trophies */}
                     <div className="space-y-6 lg:col-span-4">
                         <ProgressCard progress={data.progress} />
-                        <CurrentSessionCard
-                            currentSession={data.currentSession}
-                            onStart={handleStartSession}
-                            isStarting={startingSession}
-                        />
-                    </div>
-
-                    {/* Sidebar Area - 3 cols */}
-                    <div className="space-y-6 lg:col-span-3">
                         <BadgesCard badges={data.badges} />
                     </div>
 
-                    {/* Session History - Full Width */}
-                    <div className="lg:col-span-7">
-                        <SessionHistoryList sessions={data.history || []} />
+                    {/* Right Column - Session Grid */}
+                    <div className="lg:col-span-8">
+                        <SessionGridCard
+                            completedSessions={data.progress.completedSessions}
+                            currentSession={data.currentSession}
+                            totalSessions={data.progress.totalSessions}
+                            onStartSession={handleStartSession}
+                            onViewFeedback={(sessionNum) => {
+                                // Find the session in history
+                                const session = data.history?.find(s => s.session_number === sessionNum);
+                                if (session) {
+                                    router.push(`/student/session/${session.id}/feedback`);
+                                }
+                            }}
+                            isStarting={startingSession}
+                        />
                     </div>
                 </div>
             </div>
