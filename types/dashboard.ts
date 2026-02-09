@@ -31,3 +31,19 @@ export interface Badge {
     earnedDate?: string;
     description?: string;
 }
+
+export interface SessionHistory {
+    id: string;
+    session_number: number;
+    status: string; // "completed", "in_progress", "locked", "available"
+    patient_age?: number;
+    patient_gender?: string; // "male" | "female"
+}
+
+export interface DashboardData {
+    student: Student;
+    progress: Progress;
+    currentSession: Session;
+    badges: Badge[];
+    history?: SessionHistory[];
+}

@@ -7,13 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, Loader2, Award } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { QuestionnaireForm } from "@/components/session/questionnaire-form";
 
 interface FeedbackData {
-    score: number;
-    feedback_text: string;
-    strengths: string[];
-    improvements: string[];
-    transcript_summary?: string;
+    language: string;
+    student_facing: {
+        strengths: string[];
+        areas_to_improve: string[];
+        reflective_question: string;
+    };
+    internal_scores: {
+        [key: string]: number;
+    };
 }
 
 export default function FeedbackPage() {
@@ -32,7 +37,7 @@ export default function FeedbackPage() {
         setError(null);
         try {
             const token = getToken();
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
             // Call generate-feedback endpoint
             const res = await fetch(`${baseUrl}/student/sessions/${sessionId}/generate-feedback`, {
@@ -44,14 +49,13 @@ export default function FeedbackPage() {
             });
 
             if (!res.ok) {
-                // Handle 503 specifically or other errors
                 if (res.status === 503) {
-                    throw new Error("Service indisponible (503). L'IA est peut-être surchargée.");
+                    throw new Error("Service indisponible (503). L'IA est peut-être surchargée. Veuillez réessayer plus tard.");
                 }
                 throw new Error(`Impossible de récupérer le feedback (${res.status}).`);
             }
 
-            const data = await res.json();
+            const data: FeedbackData = await res.json();
             setFeedback(data);
         } catch (err) {
             console.error("Feedback error:", err);
@@ -65,24 +69,6 @@ export default function FeedbackPage() {
         if (!sessionId) return;
         fetchFeedback();
     }, [sessionId]);
-
-    const loadMockFeedback = () => {
-        setFeedback({
-            score: 85,
-            feedback_text: "Excellent travail global. Vous avez su établir un bon rapport avec le patient et poser les questions essentielles sur la douleur. Attention cependant à approfondir l'historique médical.",
-            strengths: [
-                "Bonne empathie et écoute active",
-                "Questions précises sur la localisation de la douleur",
-                "Utilisation correcte du vocabulaire adapté"
-            ],
-            improvements: [
-                "N'oubliez pas de demander les antécédents familiaux",
-                "Pensez à résumer les propos du patient plus souvent"
-            ]
-        });
-        setError(null);
-        setLoading(false);
-    };
 
     if (!sessionId) return null;
 
@@ -110,13 +96,18 @@ export default function FeedbackPage() {
                     <Button onClick={fetchFeedback}>
                         Réessayer
                     </Button>
-                    <Button onClick={loadMockFeedback} variant="secondary">
-                        Voir un exemple (Mock)
-                    </Button>
                 </div>
             </div>
         );
     }
+
+    // Helper to get score safely
+    const getScore = () => {
+        if (!feedback?.internal_scores) return 0;
+        return feedback.internal_scores.overall ||
+            Object.values(feedback.internal_scores).reduce((a, b) => a + b, 0) / Object.values(feedback.internal_scores).length ||
+            0;
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
@@ -144,21 +135,21 @@ export default function FeedbackPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-end gap-2">
-                                    <span className="text-5xl font-bold text-primary">{feedback.score}</span>
+                                    <span className="text-5xl font-bold text-primary">{Math.round(getScore())}</span>
                                     <span className="text-xl text-muted-foreground mb-1">/ 100</span>
                                 </div>
-                                <Progress value={feedback.score} className="h-3" />
+                                <Progress value={getScore()} className="h-3" />
                             </CardContent>
                         </Card>
 
-                        {/* Feedback Text */}
+                        {/* Interactive Feedback Text usually goes here if available or uses reflective question */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Analyse Détaillée</CardTitle>
+                                <CardTitle>Question de Réflexion</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="prose dark:prose-invert">
-                                    <p>{feedback.feedback_text}</p>
+                                    <p>{feedback.student_facing.reflective_question}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -171,7 +162,7 @@ export default function FeedbackPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <ul className="list-disc list-inside space-y-1">
-                                        {feedback.strengths?.map((item, i) => (
+                                        {feedback.student_facing.strengths?.map((item, i) => (
                                             <li key={i}>{item}</li>
                                         )) || <p className="text-muted-foreground italic">Aucun point fort spécifique détecté.</p>}
                                     </ul>
@@ -185,12 +176,17 @@ export default function FeedbackPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <ul className="list-disc list-inside space-y-1">
-                                        {feedback.improvements?.map((item, i) => (
+                                        {feedback.student_facing.areas_to_improve?.map((item, i) => (
                                             <li key={i}>{item}</li>
                                         )) || <p className="text-muted-foreground italic">Aucun axe d'amélioration spécifique détecté.</p>}
                                     </ul>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        {/* Questionnaire Section */}
+                        <div className="pt-8 border-t">
+                            <QuestionnaireForm sessionId={sessionId as string} />
                         </div>
                     </div>
                 )}

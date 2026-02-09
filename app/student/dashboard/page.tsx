@@ -7,6 +7,7 @@ import { ProgressCard } from "@/components/dashboard/progress-card";
 import { CurrentSessionCard } from "@/components/dashboard/current-session-card";
 import { BadgesCard } from "@/components/dashboard/badges-card";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { SessionHistoryList } from "@/components/dashboard/session-history-list";
 import { DashboardData, Badge } from "@/types/dashboard";
 import { getToken, removeToken, getUser } from "@/lib/auth";
 
@@ -91,6 +92,13 @@ export default function DashboardPage() {
                         reason: apiData.available_session_number ? null : (completedSessions >= totalSessions ? "all_completed" : "weekly_limit"),
                     },
                     badges: allBadges,
+                    history: (apiData.sessions || []).map((s: any) => ({
+                        id: s.id,
+                        session_number: s.session_number,
+                        status: s.status,
+                        patient_age: s.patient_age,
+                        patient_gender: s.patient_gender,
+                    })).sort((a: any, b: any) => b.session_number - a.session_number) // Sort by session number desc
                 };
 
                 setData(transformedData);
@@ -185,6 +193,11 @@ export default function DashboardPage() {
                     {/* Sidebar Area - 3 cols */}
                     <div className="space-y-6 lg:col-span-3">
                         <BadgesCard badges={data.badges} />
+                    </div>
+
+                    {/* Session History - Full Width */}
+                    <div className="lg:col-span-7">
+                        <SessionHistoryList sessions={data.history || []} />
                     </div>
                 </div>
             </div>
