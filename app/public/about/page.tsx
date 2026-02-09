@@ -76,6 +76,12 @@ export default function AboutPage() {
                         {t.content}
                     </p>
                 </div>
+
+                <div className="mt-8 text-center">
+                    <a href="/public/login" className="text-teal-700 font-semibold hover:underline">
+                        Retour à la connexion
+                    </a>
+                </div>
             </main>
 
             <footer className="mt-auto py-10 border-t border-slate-200">
