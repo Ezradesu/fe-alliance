@@ -8,6 +8,7 @@ import { AdminStatsResponse, AnalyticsSummaryResponse, AdminStudentsResponse, St
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OverallAnalytics } from "@/components/admin/overall-analytics";
 import { StudentsList } from "@/components/admin/students-list";
+import { SessionsList } from "@/components/admin/sessions-list";
 import { Download } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -152,15 +153,25 @@ export default function AdminDashboardPage() {
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-semibold">Moyennes par Session</h2>
                                     {selectedSessionNum && (
-                                        <Button
-                                            onClick={() => handleExportSessionPdf(selectedSessionNum)}
-                                            disabled={exportingSession}
-                                            size="sm"
-                                            className="gap-2"
-                                        >
-                                            <Download className="h-4 w-4" />
-                                            {exportingSession ? "Export en cours..." : "Export PDF Session"}
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => handleExportSessionPdf(selectedSessionNum)}
+                                                disabled={exportingSession}
+                                                size="sm"
+                                                variant="outline"
+                                                className="gap-2"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                {exportingSession ? "Export en cours..." : "Export PDF Session"}
+                                            </Button>
+                                            <Button
+                                                onClick={() => setSelectedSessionNum(null)}
+                                                size="sm"
+                                                variant="ghost"
+                                            >
+                                                Tout masquer
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-h-[500px] overflow-y-auto pr-2">
@@ -172,27 +183,41 @@ export default function AdminDashboardPage() {
                                                 onClick={() => setSelectedSessionNum(sessionNum)}
                                                 className={`p-4 bg-card rounded-lg border shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedSessionNum === sessionNum
                                                     ? "ring-2 ring-primary bg-primary/5"
-                                                    : ""
+                                                    : "hover:border-primary/50"
                                                     }`}
                                             >
                                                 <div className="font-medium mb-2">Session {sessionNum}</div>
                                                 <div className="grid grid-cols-3 gap-2 text-sm">
                                                     <div>
-                                                        <span className="text-muted-foreground">Empathie:</span>{" "}
+                                                        <span className="text-muted-foreground">Emp:</span>{" "}
                                                         <span className="font-semibold">{scores.empathy.toFixed(1)}</span>
                                                     </div>
                                                     <div>
-                                                        <span className="text-muted-foreground">Structure:</span>{" "}
+                                                        <span className="text-muted-foreground">Str:</span>{" "}
                                                         <span className="font-semibold">{scores.structure.toFixed(1)}</span>
                                                     </div>
                                                     <div>
-                                                        <span className="text-muted-foreground">Alliance:</span>{" "}
+                                                        <span className="text-muted-foreground">All:</span>{" "}
                                                         <span className="font-semibold">{scores.alliance.toFixed(1)}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                 </div>
+
+                                {/* Drill-down Sessions List */}
+                                {selectedSessionNum && (
+                                    <div className="mt-8 pt-8 border-t animate-in fade-in slide-in-from-top-4 duration-500">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-bold">Détails de la Session {selectedSessionNum}</h3>
+                                            <p className="text-sm text-muted-foreground">Visualisez les feedbacks individuels pour toutes les sessions {selectedSessionNum}.</p>
+                                        </div>
+                                        <SessionsList
+                                            sessionNumber={Number(selectedSessionNum)}
+                                            students={students}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </TabsContent>
