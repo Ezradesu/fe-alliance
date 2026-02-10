@@ -24,7 +24,6 @@ interface FeedbackData {
 export default function FeedbackPage() {
     const router = useRouter();
     const params = useParams();
-    // Safely extract sessionId
     const rawSessionId = params?.sessionId;
     const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : rawSessionId;
 
@@ -39,7 +38,6 @@ export default function FeedbackPage() {
             const token = getToken();
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-            // Call generate-feedback endpoint
             const res = await fetch(`${baseUrl}/student/sessions/${sessionId}/generate-feedback`, {
                 method: "POST",
                 headers: {
@@ -101,7 +99,6 @@ export default function FeedbackPage() {
         );
     }
 
-    // Helper to get score safely
     const getScore = () => {
         if (!feedback?.internal_scores) return 0;
         return feedback.internal_scores.overall ||
@@ -127,7 +124,6 @@ export default function FeedbackPage() {
 
                 {feedback && (
                     <div className="grid gap-6">
-                        {/* Score Card */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Score Global</CardTitle>
@@ -142,7 +138,6 @@ export default function FeedbackPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Interactive Feedback Text usually goes here if available or uses reflective question */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Question de Réflexion</CardTitle>
@@ -155,7 +150,6 @@ export default function FeedbackPage() {
                         </Card>
 
                         <div className="grid md:grid-cols-2 gap-6">
-                            {/* Strengths */}
                             <Card className="border-l-4 border-l-green-500">
                                 <CardHeader>
                                     <CardTitle className="text-green-700">Points Forts</CardTitle>
@@ -169,7 +163,6 @@ export default function FeedbackPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Improvements */}
                             <Card className="border-l-4 border-l-orange-500">
                                 <CardHeader>
                                     <CardTitle className="text-orange-700">Axes d'Amélioration</CardTitle>
@@ -184,7 +177,6 @@ export default function FeedbackPage() {
                             </Card>
                         </div>
 
-                        {/* Questionnaire Section */}
                         <div className="pt-8 border-t">
                             <QuestionnaireForm sessionId={sessionId as string} />
                         </div>

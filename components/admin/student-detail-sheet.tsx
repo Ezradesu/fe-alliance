@@ -25,8 +25,10 @@ interface StudentDetailSheetProps {
 export function StudentDetailSheet({ student, open, onOpenChange, onExportPdf }: StudentDetailSheetProps) {
     const [sessions, setSessions] = useState<StudentSession[]>([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
+    const [allFeedbacks, setAllFeedbacks] = useState<SessionFeedback[]>([]);
     const [selectedFeedback, setSelectedFeedback] = useState<SessionFeedback | null>(null);
     const [loadingFeedback, setLoadingFeedback] = useState(false);
+    const [selectedFeedbackIndex, setSelectedFeedbackIndex] = useState<number | null>(null);
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -34,8 +36,10 @@ export function StudentDetailSheet({ student, open, onOpenChange, onExportPdf }:
             fetchSessions();
         } else {
             setSessions([]);
+            setAllFeedbacks([]);
             setSelectedFeedback(null);
             setSelectedSessionId(null);
+            setSelectedFeedbackIndex(null);
         }
     }, [open, student]);
 
@@ -45,45 +49,79 @@ export function StudentDetailSheet({ student, open, onOpenChange, onExportPdf }:
         try {
             const token = getToken();
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-            // Using query param as it's a common pattern for listing resources by owner
-            const response = await fetch(`${baseUrl}/admin/sessions?user_id=${student.user_id}`, {
+            const url = `${baseUrl}/admin/students/${student.user_id}/feedback`;
+
+            console.log("Fetching feedback from:", url);
+            console.log("Student user_id:", student.user_id);
+
+            const response = await fetch(url, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
+            console.log("Response status:", response.status);
+            console.log("Response OK:", response.ok);
+
             if (response.ok) {
                 const data = await response.json();
-                // Handle different possible response structures
-                const sessionsList = Array.isArray(data) ? data : (data.sessions || []);
-                setSessions(sessionsList.sort((a: any, b: any) => b.session_number - a.session_number));
+                console.log("Raw API response:", data);
+                console.log("Is array?", Array.isArray(data));
+
+                const feedbackList = Array.isArray(data) ? data : [];
+                console.log("Feedback list length:", feedbackList.length);
+                console.log("Feedback list:", feedbackList);
+
+                setAllFeedbacks(feedbackList);
+
+                // Map feedbacks to a structure compatible with the session list UI
+                // Store the original array index as the ID so we can match it later
+                const mappedSessions: StudentSession[] = feedbackList.map((f: any, index: number) => ({
+                    id: `feedback-${index}`, // Use index as ID
+                    session_number: feedbackList.length - index, // Session number descending
+                    status: "completed", // If it has feedback, it's completed
+                    score_avg: ((f.internal_scores?.empathy || 0) + (f.internal_scores?.alliance || 0) + (f.internal_scores?.structure || 0)) / 3,
+                    topic: `Session ${feedbackList.length - index}`,
+                    created_at: new Date().toISOString()
+                }));
+
+                console.log("Mapped sessions:", mappedSessions);
+                setSessions(mappedSessions.sort((a, b) => b.session_number - a.session_number));
+            } else {
+                const errorText = await response.text();
+                console.error("API Error:", response.status, errorText);
+                alert(`Erreur lors de la récupération des feedbacks: ${response.status} - ${errorText}`);
             }
         } catch (error) {
-            console.error("Error fetching student sessions:", error);
+            console.error("Error fetching student sessions from feedback:", error);
+            alert(`Erreur: ${error instanceof Error ? error.message : "Erreur inconnue"}`);
         } finally {
             setLoadingSessions(false);
         }
     };
 
     const handleViewFeedback = async (sessionId: string) => {
+        if (!student) return;
         setSelectedSessionId(sessionId);
-        setLoadingFeedback(true);
-        try {
-            const token = getToken();
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-            const response = await fetch(`${baseUrl}/admin/sessions/${sessionId}/feedback`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
 
-            if (response.ok) {
-                const data = await response.json();
-                setSelectedFeedback(data);
+        // Extract the index from the sessionId (format: "feedback-{index}")
+        const indexMatch = sessionId.match(/^feedback-(\d+)$/);
+        if (indexMatch && allFeedbacks.length > 0) {
+            const index = parseInt(indexMatch[1], 10);
+            console.log("Selecting feedback at index:", index);
+            console.log("Available feedbacks:", allFeedbacks.length);
+
+            if (index >= 0 && index < allFeedbacks.length) {
+                setSelectedFeedback(allFeedbacks[index]);
+                setSelectedFeedbackIndex(index);
+                console.log("Selected feedback:", allFeedbacks[index]);
             } else {
-                alert("Impossible de récupérer le feedback de cette session");
+                console.warn("Feedback index out of range:", index);
+                setSelectedFeedback(null);
+                setSelectedFeedbackIndex(null);
             }
-        } catch (error) {
-            console.error("Error fetching session feedback:", error);
-            alert("Erreur saat mengambil feedback");
-        } finally {
-            setLoadingFeedback(false);
+        } else {
+            console.warn("Could not parse session ID or no feedbacks available:", sessionId);
+            setSelectedFeedback(null);
+            setSelectedFeedbackIndex(null);
         }
     };
 

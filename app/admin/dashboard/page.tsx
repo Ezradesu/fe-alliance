@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
         try {
             const token = getToken();
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-            const response = await fetch(`${baseUrl}/admin/student/${userId}/summary-pdf`, {
+            const response = await fetch(`${baseUrl}/admin/students/${userId}/summary-pdf`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -143,11 +143,11 @@ export default function AdminDashboardPage() {
                         <TabsTrigger value="students">Étudiants</TabsTrigger>
                     </TabsList>
 
-                    {/* Overall Tab */}
+
                     <TabsContent value="overall" className="space-y-6">
                         <OverallAnalytics stats={stats} analytics={analytics} />
 
-                        {/* Interactive Moyennes par Session with Export */}
+
                         {analytics && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -205,7 +205,7 @@ export default function AdminDashboardPage() {
                                         ))}
                                 </div>
 
-                                {/* Drill-down Sessions List */}
+
                                 {selectedSessionNum && (
                                     <div className="mt-8 pt-8 border-t animate-in fade-in slide-in-from-top-4 duration-500">
                                         <div className="mb-4">
@@ -222,7 +222,7 @@ export default function AdminDashboardPage() {
                         )}
                     </TabsContent>
 
-                    {/* Students Tab */}
+
                     <TabsContent value="students" className="space-y-6">
                         <StudentsList
                             students={students}

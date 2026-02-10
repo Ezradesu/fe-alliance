@@ -10,10 +10,7 @@ import { ArrowLeft } from "lucide-react";
 export default function SessionPage() {
     const router = useRouter();
     const params = useParams();
-    // Debugging: Check what params actually is
-    // console.log("SessionPage params:", params); 
 
-    // Ensure sessionId is a string. useParams can return string or string[]
     const rawSessionId = params?.sessionId;
     const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : rawSessionId;
 
@@ -28,7 +25,6 @@ export default function SessionPage() {
         }
     }, [router]);
 
-    // Ensure sessionId is valid before rendering
     if (!sessionId) return null;
     if (!isAuthorized) return null;
 

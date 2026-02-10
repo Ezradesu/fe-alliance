@@ -29,7 +29,7 @@ interface SessionsListProps {
 }
 
 export function SessionsList({ sessionNumber, students }: SessionsListProps) {
-    const [allSessions, setAllSessions] = useState<(StudentSession & { studentEmail: string })[]>([]);
+    const [allSessions, setAllSessions] = useState<(StudentSession & { studentEmail: string; userId: string })[]>([]);
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [selectedFeedback, setSelectedFeedback] = useState<SessionFeedback | null>(null);
@@ -51,7 +51,7 @@ export function SessionsList({ sessionNumber, students }: SessionsListProps) {
 
         const token = getToken();
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-        const aggregatedSessions: (StudentSession & { studentEmail: string })[] = [];
+        const aggregatedSessions: (StudentSession & { studentEmail: string; userId: string })[] = [];
 
         try {
             // We'll fetch in smaller batches or sequentially to avoid hitting rate limits 
@@ -61,18 +61,28 @@ export function SessionsList({ sessionNumber, students }: SessionsListProps) {
             for (let i = 0; i < total; i++) {
                 const student = students[i];
                 try {
-                    const response = await fetch(`${baseUrl}/admin/sessions?user_id=${student.user_id}`, {
+                    // Fetch feedbacks for this student as /admin/sessions is 404
+                    const response = await fetch(`${baseUrl}/admin/students/${student.user_id}/feedback`, {
                         headers: { "Authorization": `Bearer ${token}` }
                     });
 
                     if (response.ok) {
-                        const data = await response.json();
-                        const sessionsList: StudentSession[] = Array.isArray(data) ? data : (data.sessions || []);
+                        const feedbackList = await response.json();
+                        const list: any[] = Array.isArray(feedbackList) ? feedbackList : [];
 
-                        // Filter for the specific session number
-                        const matches = sessionsList
-                            .filter(s => s.session_number === sessionNumber)
-                            .map(s => ({ ...s, studentEmail: student.email }));
+                        // Map and filter for the specific session number
+                        const matches = list
+                            .filter(f => f.session_number === sessionNumber)
+                            .map(f => ({
+                                id: f.session_id || f.id,
+                                session_number: f.session_number,
+                                status: "completed",
+                                score_avg: f.internal_scores?.overall || 0,
+                                created_at: f.created_at || new Date().toISOString(),
+                                topic: f.topic || "Session",
+                                studentEmail: student.email,
+                                userId: student.user_id
+                            }));
 
                         aggregatedSessions.push(...matches);
                     }
@@ -93,20 +103,24 @@ export function SessionsList({ sessionNumber, students }: SessionsListProps) {
         }
     };
 
-    const handleViewFeedback = async (sessionId: string) => {
+    const handleViewFeedback = async (sessionId: string, userId: string) => {
         setIsDialogOpen(true);
         setLoadingFeedback(true);
         setSelectedFeedback(null);
         try {
             const token = getToken();
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-            const response = await fetch(`${baseUrl}/admin/sessions/${sessionId}/feedback`, {
+            // New endpoint: fetch student feedbacks (plural as documented)
+            const response = await fetch(`${baseUrl}/admin/students/${userId}/feedback`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setSelectedFeedback(data);
+                const feedbackList = Array.isArray(data) ? data : [];
+                // Find matching feedback by session ID
+                const match = feedbackList.find((f: any) => f.session_id === sessionId);
+                setSelectedFeedback(match || null);
             }
         } catch (error) {
             console.error("Error fetching feedback:", error);
@@ -183,8 +197,8 @@ export function SessionsList({ sessionNumber, students }: SessionsListProps) {
                                     </TableCell>
                                     <TableCell>
                                         <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${session.score_avg >= 80 ? "bg-emerald-100 text-emerald-700" :
-                                                session.score_avg >= 60 ? "bg-amber-100 text-amber-700" :
-                                                    "bg-rose-100 text-rose-700"
+                                            session.score_avg >= 60 ? "bg-amber-100 text-amber-700" :
+                                                "bg-rose-100 text-rose-700"
                                             }`}>
                                             {session.score_avg}%
                                         </div>
@@ -199,7 +213,7 @@ export function SessionsList({ sessionNumber, students }: SessionsListProps) {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleViewFeedback(session.id)}
+                                            onClick={() => handleViewFeedback(session.id, session.userId)}
                                             className="hover:text-primary hover:bg-primary/5 h-8 px-3"
                                         >
                                             <Eye className="h-3.5 w-3.5 mr-1.5" />

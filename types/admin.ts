@@ -43,6 +43,7 @@ export interface StudentSession {
 }
 
 export interface SessionFeedback {
+    session_id?: string;
     language: string;
     student_facing: {
         strengths: string[];

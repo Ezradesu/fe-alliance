@@ -54,7 +54,6 @@ export default function DashboardPage() {
 
                 const user = getUser();
 
-                // Mock badge metadata since API only returns IDs
                 const BADGE_METADATA: Record<string, Omit<Badge, "id" | "earned" | "earnedDate">> = {
                     "SESSION_1": { name: "Première Consultation", icon: "Ear", description: "A terminé la première session" },
                     "SESSION_5": { name: "Mi-Parcours", icon: "Repeat", description: "A terminé 5 sessions" },
@@ -67,23 +66,22 @@ export default function DashboardPage() {
                     id,
                     ...meta,
                     earned: earnedBadgeIds.includes(id),
-                    earnedDate: earnedBadgeIds.includes(id) ? new Date().toLocaleDateString('fr-FR') : undefined, // Date not in API, use today or omit
+                    earnedDate: earnedBadgeIds.includes(id) ? new Date().toLocaleDateString('fr-FR') : undefined,
                 }));
 
                 const totalSessions = 16;
                 const completedSessions = apiData.completed || 0;
 
-                // Transform snake_case API response to camelCase TS interface
                 const transformedData: DashboardData = {
                     student: {
-                        name: user?.email?.split('@')[0] || "Étudiant", // Fallback name from email if no name
+                        name: user?.email?.split('@')[0] || "Étudiant",
                         academicYear: (user?.level === "4e" ? "4th" : "5th") as "4th" | "5th",
                     },
                     progress: {
                         completedSessions: completedSessions,
                         totalSessions: totalSessions,
-                        weeklySessionsUsed: 0, // Not provided by API, defaulting to 0
-                        weeklySessionsLimit: 2, // Hardcoded limit
+                        weeklySessionsUsed: 0,
+                        weeklySessionsLimit: 2,
                     },
                     currentSession: {
                         available: apiData.available_session_number !== null,
@@ -97,7 +95,7 @@ export default function DashboardPage() {
                         status: s.status,
                         patient_age: s.patient_age,
                         patient_gender: s.patient_gender,
-                    })).sort((a: any, b: any) => b.session_number - a.session_number) // Sort by session number desc
+                    })).sort((a: any, b: any) => b.session_number - a.session_number)
                 };
 
                 setData(transformedData);
@@ -121,7 +119,6 @@ export default function DashboardPage() {
             const token = getToken();
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-            // Fetch current session ID
             const res = await fetch(`${baseUrl}/student/sessions/current-id`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -136,7 +133,6 @@ export default function DashboardPage() {
             if (typeof rawResponse === "string") {
                 sessionId = rawResponse;
             } else if (typeof rawResponse === "object" && rawResponse !== null) {
-                // Try common fields if it's an object
                 sessionId = rawResponse.session_id || rawResponse.id || rawResponse.sessionId || null;
             }
 
@@ -183,13 +179,11 @@ export default function DashboardPage() {
                 />
 
                 <div className="grid gap-6 lg:grid-cols-12">
-                    {/* Left Column - Progression + Trophies */}
                     <div className="space-y-6 lg:col-span-4">
                         <ProgressCard progress={data.progress} />
                         <BadgesCard badges={data.badges} />
                     </div>
 
-                    {/* Right Column - Session Grid */}
                     <div className="lg:col-span-8">
                         <SessionGridCard
                             completedSessions={data.progress.completedSessions}
@@ -197,7 +191,6 @@ export default function DashboardPage() {
                             totalSessions={data.progress.totalSessions}
                             onStartSession={handleStartSession}
                             onViewFeedback={(sessionNum) => {
-                                // Find the session in history
                                 const session = data.history?.find(s => s.session_number === sessionNum);
                                 if (session) {
                                     router.push(`/student/session/${session.id}/feedback`);
